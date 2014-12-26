@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+"""
+Additional dictionaries: http://cgit.freedesktop.org/libreoffice/dictionaries/tree/en
+"""
+import argparse
+import os
+import random
+import sys
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Secure password generator')
+    parser.add_argument('--length', '-l', type=int, default=0,
+                        help='Maximum length of the password (default: no limit, 0)')
+    parser.add_argument('--count', '-c', type=int, default=4,
+                           help='Number of words in the password (default: 4)')
+    parser.add_argument('--separator', '-s', type=str, default=' ',
+                        help='Separator between different words, ')
+    parser.add_argument('--capitalize', type=str, default='first',
+                           help='Capitalize letters in the password [first, all, random] (default: first)')
+    parser.add_argument('--no-specials', action='store_true',
+                        help='Don\'t insert special characters (one of ?,*,&,^,%%,#,!) (default=True)')
+    parser.add_argument('--specials-position', type=str, default='back',
+                        help='Where to add special characters [front, back, random] (default: back)')
+    parser.add_argument('--specials-count', type=int, default=2,
+                        help='Number of special characters (default: 2)')
+    parser.add_argument('--specials-nospace', type=bool, default=True,
+                        help='Remove spaces before and after special characters (default: True)')
+    parser.add_argument('--dictionary', '-d', type=str, default='en_US.dic',
+                        help='What dictionary file to use (default: en_US.dic). Currently only Hunspell '
+                        'dictionary files are supported.')
+
+    return parser.parse_args()
+
+def generate_password(length, count, separator, capitalize, no_specials, specials_count, specials_position, specials_nospace, dictionary):
+    _specials = ['?','*','&','^','%','#','!']
+    fle = None
+    raw_text = None
+    try:
+        fle = open(dictionary, 'rt')
+        raw_text = fle.read()
+        fle.close()
+    except Exception, e:
+        raise e
+
+    raw_text = raw_text.split('\n')
+    words = [a.split('/')[0].lower() if '/' in a else a.lower() for a in raw_text]
+    selected_words = random.sample(words, count)
+
+    if capitalize == 'first':
+        selected_words[0] = selected_words[0].capitalize()
+    elif capitalize == 'all':
+        selected_words = [a.capitalize() for a in selected_words]
+    elif capitalize == 'random':
+        selected_words = [a.capitalize() if random.random() > 0.5 else a for a in selected_words]
+    else:
+        raise Exception('Unknown capitalization option: %s' % capitalize)
+
+    specials = not no_specials
+    if specials:
+        if specials_count > len(_specials):
+            _specials = _specials * ((specials_count // len(_specials)) + 1)
+        selected_specials = random.sample(_specials, specials_count)
+        if specials_position == 'front':
+            selected_words.insert(0, ''.join(selected_specials))
+        elif specials_position == 'back':
+            selected_words.append(''.join(selected_specials))
+        elif specials_position == 'random':
+            selected_words.extend(selected_specials)
+            random.shuffle(selected_words)
+        else:
+            raise Exception('Unknown specials position option: %s' % specials_position)
+    password = separator.join(selected_words)
+    if specials_nospace:
+        for i in range(len(password) - 1):
+            if i < len(password) and password[i] in _specials:
+                l,r = max(0, i-1),min(len(password)-1, i+1)
+                if password[l] == ' ':
+                    password = password[:l] + password[l+1:]
+                    r -= 1
+                if password[r] == ' ':
+                    password = password[:r] + password[r+1:]
+    return password if length == 0 else password[:length]
+
+
+
+def main():
+    args = parse_args()
+    path = sys.argv[0]
+    path = os.path.split(path)[0]
+    dictionary_path = os.path.join(path, args.dictionary)
+    print dictionary_path
+    print generate_password(args.length,
+                            args.count,
+                            args.separator,
+                            args.capitalize,
+                            args.no_specials,
+                            args.specials_count,
+                            args.specials_position,
+                            args.specials_nospace,
+                            dictionary_path)
+
+
+if __name__ == '__main__':
+    main()

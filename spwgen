@@ -89,7 +89,7 @@ def main():
     path = sys.argv[0]
     path = os.path.split(path)[0]
     dictionary_path = os.path.join(path, args.dictionary)
-    print dictionary_path
+    
     print generate_password(args.length,
                             args.count,
                             args.separator,

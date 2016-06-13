@@ -35,6 +35,8 @@ The script has some other useful settings, running `spwgen -h` will list them al
                         What dictionary file to use (default: en_US.dic).
                         Currently only Hunspell dictionary files are
                         supported.
+  --num-passwords NUM_PASSWORDS, -n NUM_PASSWORDS
+                        Number of passwords to generate
 ```
 
 Requirements
